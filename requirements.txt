@@ -1,0 +1,4 @@
+
+
+pyrogram-patch @ git+https://github.com/kotttee/pyrogram_patch.git@ec0a2f4317e19e9f81339a2190eb47c86edfe924
+
