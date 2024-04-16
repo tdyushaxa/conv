@@ -1,7 +1,8 @@
+from pytesseract import image_to_string
+from PIL import Image
 
 
-async def image_to_Text_async(path, lang):
-    pass
-   
 
-image_to_Text_async('eng','12.jpg')
+def image_to_Text_async(path, lang):
+    text = image_to_string(Image.open(path), lang=lang)
+    return text

@@ -23,9 +23,9 @@ from states.file_state import ImageTopdf, ImageTotext, Excel_to_pdf_state, FileS
 from utils.check_subs import check
 from utils.excel_to_pdf import excel_to_pdf
 from utils.filters import data_filter_lang, filter_text_lang
-from utils.imageget_text import image_to_Text_async
+from utils.pdf_to_word import pdf_to_word
 from utils.word_to_pdf import convert_to
-
+from utils.image_to_text_ocr import Image_to_text 
 app = Client("pdfconvertor", api_hash=API_HASH, bot_token=BOT_TOKEN, api_id=API_ID)
 patch_manager = patch(app)
 patch_manager.set_storage(MemoryStorage())
@@ -92,13 +92,6 @@ async def start(client: patch_manager.client, message: types.Message):
                             f"{channels_format}",
                             reply_markup=check_button_subs,
                             disable_web_page_preview=True)
-    # user_lang = db.select_user(id=id)[-1]
-    # if user_lang:
-    #     text = get_text(user_lang, "hello")
-    #     await client.send_message(message.chat.id, f"{text} <b>{fullname.title()}</b> !!!", reply_markup=convertor_btn)
-    # else:
-    #     text = get_text(DEFAULT_LANGUAGE, "hello")
-    #     await client.send_message(message.chat.id, f"{text} <b>{fullname.title()}</b> !!!", reply_markup=convertor_btn)
 
 
 @app.on_callback_query(filters.regex("check_subs"))
@@ -342,6 +335,7 @@ async def get_photo(client: Client, msg: types.Message, state: State):
 @app.on_message(filter_text_lang & StateFilter(ImageTotext.language))
 async def get_photo(client: Client, msg: types.Message, state: State):
     language = msg.text
+    print(msg.text)
     await state.set_data({
         'language': language
     })
@@ -360,7 +354,8 @@ async def convert_to_text(client: Client, msg: types.Message, state: State):
     lang = data.get('language')
 
     try:
-        text = await image_to_Text_async(path=f'downloads/{photo_name}.png', lang=lang)
+        text = await Image_to_text(image_path=f'downloads/{photo_name}.png', lang=lang)
+    
         time.sleep(1)
         await msg.reply(text, reply_markup=convertor_btn)
 
@@ -831,7 +826,6 @@ async def converter_to_word(client: Client, msg: types.Message):
     user_lang = db.select_user(id=user_id)[-1]
     file_path = f'downloads/{msg.from_user.id}.pdf'
     try:
-        docx_file = f'{file_name_1}.docx'
 
         if user_lang:
             pdf_file_changing = get_text(user_lang, 'pdf_file_changing')
@@ -843,13 +837,12 @@ async def converter_to_word(client: Client, msg: types.Message):
             change_msg = await msg.reply(pdf_file_changing)
             pdf_file_changing_wait = get_text(DEFAULT_LANGUAGE, 'pdf_file_changing_wait')
             wait = await msg.reply(pdf_file_changing_wait)
-        if fitz.open(file_path).page_count > 30:
-            await client.send_message(chat_id=msg.chat.id,text='pdf should not exceed 30 pages. ',reply_markup=convertor_btn)
+        if fitz.open(file_path).page_count > 400:
+            await client.send_message(chat_id=msg.chat.id, text='pdf should not exceed 30 pages. ',
+                                      reply_markup=convertor_btn)
         else:
-            conv = Converter(file_path)
-            conv.convert(docx_file)
-            conv.close()
-            await msg.reply_document(document=docx_file, reply_markup=ReplyKeyboardRemove())
+            docx_file_path = await pdf_to_word(file_path, msg.from_user.id)
+            await msg.reply_document(document=docx_file_path, reply_markup=ReplyKeyboardRemove())
             await client.delete_messages(chat_id=msg.chat.id, message_ids=wait.id)
             if user_lang:
                 pdf_file_changed = get_text(user_lang, 'pdf_file_changed')
@@ -857,7 +850,7 @@ async def converter_to_word(client: Client, msg: types.Message):
             else:
                 pdf_file_changed = get_text(DEFAULT_LANGUAGE, 'pdf_file_changed')
                 await client.edit_message_text(chat_id=msg.chat.id, message_id=change_msg.id, text=pdf_file_changed)
-            os.remove(docx_file)
+            os.remove(docx_file_path)
     except:
         if user_lang:
             pdf_file_change_error = get_text(user_lang, 'pdf_file_change_error')
@@ -975,7 +968,7 @@ async def set_reklama_finish(client: Client, msg: types.Message, state: State):
                     time.sleep(0.1)
                     print(f"shuncha odamga xabar yuborilmoqda {soni}")
                     await client.send_photo(chat_id=user_id, photo=photo, caption=caption)
-                    db.add_active_user(id=user_id,language='eng')
+                    db.add_active_user(id=user_id, language='eng')
                 except Exception as e:
                     db.delete_active_user(id=user_id)
                     continue

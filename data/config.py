@@ -10,4 +10,4 @@ API_ID = env.int('API_ID')
 API_HASH = env.str('API_HASH')
 ADMINS = env.list("ADMINS")  # adminlar ro'yxati
 IP = env.str("ip")  # Xosting ip manzili
-CHANNELS = ['-1002071272492']
+CHANNELS = ['-1002076945129']
